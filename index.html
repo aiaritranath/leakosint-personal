@@ -1,1 +1,190 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Leakosint API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f9;
+      color: #333;
+    }
+    header {
+      background: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      max-width: 900px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    input,
+    textarea,
+    select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    textarea {
+      resize: vertical;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    button {
+      margin-top: 14px;
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 5px;
+      background: #333;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #555;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 12px;
+      border-radius: 5px;
+      overflow-x: auto;
+      border: 1px solid #ddd;
+      min-height: 180px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .note {
+      background: #ffecb3;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 700px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>My Leakosint API</h1>
+  </header>
+
+  <div class="content">
+    <div class="note">
+      This page calls <code>/api/search</code>. Your Leakosint token stays server-side in Vercel Environment Variables.
+    </div>
+
+    <label>Access key</label>
+    <input id="key" type="password" placeholder="ACCESS_KEY" />
+
+    <label>Request</label>
+    <textarea id="request" rows="4" placeholder="google"></textarea>
+
+    <div class="row">
+      <div>
+        <label>Limit</label>
+        <input id="limit" type="number" value="100" min="100" max="10000" />
+      </div>
+      <div>
+        <label>Lang</label>
+        <input id="lang" value="en" />
+      </div>
+      <div>
+        <label>Type</label>
+        <select id="type">
+          <option value="json">json</option>
+          <option value="short">short</option>
+          <option value="html">html</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="send">Search</button>
+    <button id="copy">Copy result</button>
+
+    <pre id="out">Result will appear here...</pre>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    $("key").value = localStorage.getItem("leakosint_access_key") || "";
+
+    $("send").addEventListener("click", async () => {
+      localStorage.setItem("leakosint_access_key", $("key").value);
+
+      const body = {
+        key: $("key").value,
+        request: $("request").value,
+        limit: Number($("limit").value) || 100,
+        lang: $("lang").value || "en",
+        type: $("type").value || "json"
+      };
+
+      if (!body.request.trim()) {
+        $("out").textContent = "Enter a request.";
+        return;
+      }
+
+      $("out").textContent = "Loading...";
+
+      try {
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+
+        const text = await res.text();
+
+        let pretty = text;
+        try {
+          pretty = JSON.stringify(JSON.parse(text), null, 2);
+        } catch {}
+
+        $("out").textContent = pretty;
+      } catch (err) {
+        $("out").textContent = "Error: " + err.message;
+      }
+    });
+
+    $("copy").addEventListener("click", async () => {
+      await navigator.clipboard.writeText($("out").textContent);
+      $("copy").textContent = "Copied!";
+      setTimeout(() => {
+        $("copy").textContent = "Copy result";
+      }, 1200);
+    });
+  </script>
+</body>
+</html>
